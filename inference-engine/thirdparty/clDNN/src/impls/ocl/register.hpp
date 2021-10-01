@@ -23,6 +23,7 @@
 #include "cldnn/primitives/fully_connected.hpp"
 #include "cldnn/primitives/gather.hpp"
 #include "cldnn/primitives/gather_nd.hpp"
+#include "cldnn/primitives/gather_elements.hpp"
 #include "cldnn/primitives/gemm.hpp"
 #include "cldnn/primitives/lrn.hpp"
 #include "cldnn/primitives/lstm.hpp"
@@ -97,6 +98,7 @@ REGISTER_OCL(embed);
 REGISTER_OCL(fully_connected);
 REGISTER_OCL(gather);
 REGISTER_OCL(gather_nd);
+REGISTER_OCL(gather_elements);
 REGISTER_OCL(gemm);
 REGISTER_OCL(lrn);
 REGISTER_OCL(lstm_gemm);
