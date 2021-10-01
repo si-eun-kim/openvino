@@ -4,8 +4,7 @@
 
 #include <vector>
 
-#include "single_layer_tests/gather_elements.hpp"
-#include "common_test_utils/test_constants.hpp"
+#include "shared_test_classes/single_layer/gather_elements.hpp"
 
 using namespace LayerTestsDefinitions;
 
@@ -17,6 +16,8 @@ const std::vector<InferenceEngine::Precision> dPrecisions = {
         InferenceEngine::Precision::I32,
         InferenceEngine::Precision::I64,
         InferenceEngine::Precision::I16,
+        InferenceEngine::Precision::U8,
+        InferenceEngine::Precision::I8
 };
 const std::vector<InferenceEngine::Precision> iPrecisions = {
         InferenceEngine::Precision::I32,

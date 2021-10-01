@@ -48,4 +48,7 @@ void GatherElementsLayerTest::SetUp() {
     function = std::make_shared<ngraph::Function>(results, params, "gatherEl");
 }
 
+TEST_P(GatherElementsLayerTest, CompareWithRefs) {
+    Run();
+}
 }  // namespace LayerTestsDefinitions
