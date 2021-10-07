@@ -12,7 +12,7 @@
 
 namespace CLDNNPlugin {
 
-void CreateGatherElementsOp(Program& p, const std::shared_ptr<ngraph::op::v5::GatherElements>& op) {
+void CreateGatherElementsOp(Program& p, const std::shared_ptr<ngraph::op::v6::GatherElements>& op) {
     p.ValidateInputs(op, {2});
     auto inputPrimitives = p.GetInputPrimitiveIDs(op);
     std::string layerName = layer_type_name_ID(op);
@@ -32,6 +32,6 @@ void CreateGatherElementsOp(Program& p, const std::shared_ptr<ngraph::op::v5::Ga
     p.AddPrimitiveToProfiler(op);
 }
 
-REGISTER_FACTORY_IMPL(v5, GatherElements);
+REGISTER_FACTORY_IMPL(v6, GatherElements);
 
 }  // namespace CLDNNPlugin

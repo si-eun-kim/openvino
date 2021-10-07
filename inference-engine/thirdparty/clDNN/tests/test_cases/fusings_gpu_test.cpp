@@ -8670,7 +8670,7 @@ TEST_P(gather_elements_quantize, basic) {
         data("in_hi", get_mem(get_per_channel_layout(p), 1, max_random)),
         data("out_lo", get_mem(get_single_element_layout(p), -127)),
         data("out_hi", get_mem(get_single_element_layout(p), 127)),
-        gather_nd("gather_elements_prim", "input", "gather_elements_indices", p.indices_rank, p.batch_dims),
+        gather_elements("gather_elements_prim", "input", "gather_elements_indices", p.indices_rank, p.batch_dims),
         quantize("quantize", "gather_elements_prim", "in_lo", "in_hi", "out_lo", "out_hi", 255, data_types::i8),
         reorder("reorder_bfyx", "quantize", p.default_format, data_types::f32)
     );
@@ -8721,7 +8721,7 @@ TEST_P(gather_elements_activation_scale_eltwise, basic) {
         data("gather_elements_indices", get_mem(get_indices_layout(p), 0, p.max_number_in_indices - 1)),
         data("scale_data", get_mem(get_per_channel_layout(p), 1.0f / 255)),
         data("eltwise_data", get_mem(get_output_layout(p))),
-        gather_nd("gather_elements_prim", "input", "gather_elements_indices", p.indices_rank, p.batch_dims),
+        gather_elements("gather_elements_prim", "input", "gather_elements_indices", p.indices_rank, p.batch_dims),
         activation("activation", "gather_elements_prim", activation_func::abs),
         scale("scale", "activation", "scale_data"),
         eltwise("eltwise", { "scale", "eltwise_data" }, eltwise_mode::sum, p.data_type),
