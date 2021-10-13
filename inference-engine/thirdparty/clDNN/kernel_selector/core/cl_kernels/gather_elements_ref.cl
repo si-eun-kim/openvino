@@ -12,63 +12,56 @@ KERNEL(gather_elements_ref)(const __global INPUT0_TYPE* data,
 #endif
 )
 {
-    // printf("Hello World!\n");
-    // printf("Data = %lf, %lf\n", data[0], data[2]);
-    // printf("Indices = %f, %lf\n", indices[3], indices[16]);
-    // printf("Axis = %d\n", AXIS);
-    // printf("Z = %d, Y = %d, X = %d\n", INPUT1_SIZE_Z, INPUT1_SIZE_Y, INPUT1_SIZE_X);
+    const uint dim0 = get_global_id(0);
+    const uint dim1 = get_global_id(1);
+    const uint dim2 = get_global_id(2);
     
     #if INPUT1_DIMS == 4
-        // printf("if\n");
-        const uint size = INPUT1_BATCH_NUM * INPUT1_FEATURE_NUM * INPUT1_SIZE_X * INPUT1_SIZE_Y;
+        const uint x = dim0;
+        const uint y = dim1;
+    #elif INPUT1_DIMS == 5
+        const uint x = dim0;
+        const uint y = dim1 % OUTPUT_SIZE_Y;
+        const uint z = dim1 / OUTPUT_SIZE_Y;
+    #else
+        const uint x = dim0 % OUTPUT_SIZE_X;
+        const uint y = dim0 / OUTPUT_SIZE_X;
+        const uint z = dim1 % OUTPUT_SIZE_Z;
+        const uint w = dim1 / OUTPUT_SIZE_Z;
+    #endif
+        const uint f = dim2 % OUTPUT_FEATURE_NUM;
+        const uint b = dim2 / OUTPUT_FEATURE_NUM;
+
+    #if INPUT1_DIMS == 4
+        int arr[INPUT1_DIMS] = {b, f, y, x};
         size_t data_shape[INPUT1_DIMS] = {INPUT0_BATCH_NUM, INPUT0_FEATURE_NUM, INPUT0_SIZE_Y, INPUT0_SIZE_X};
         size_t indices_shape[INPUT1_DIMS] = {INPUT1_BATCH_NUM, INPUT1_FEATURE_NUM, INPUT1_SIZE_Y, INPUT1_SIZE_X};
     #elif INPUT1_DIMS == 5
-        // printf("elif\n");
-        const uint size = INPUT1_BATCH_NUM * INPUT1_FEATURE_NUM * INPUT1_SIZE_X * INPUT1_SIZE_Y * INPUT1_SIZE_Z;
+        int arr[INPUT1_DIMS] = {b, f, z, y, x};
         size_t data_shape[INPUT1_DIMS] = {INPUT0_BATCH_NUM, INPUT0_FEATURE_NUM, INPUT0_SIZE_Z, INPUT0_SIZE_Y, INPUT0_SIZE_X};
         size_t indices_shape[INPUT1_DIMS] = {INPUT1_BATCH_NUM, INPUT1_FEATURE_NUM, INPUT1_SIZE_Z, INPUT1_SIZE_Y, INPUT1_SIZE_X};
     #else
-        // printf("else\n");
-        const uint size = INPUT1_BATCH_NUM * INPUT1_FEATURE_NUM * INPUT1_SIZE_X * INPUT1_SIZE_Y * INPUT1_SIZE_Z * INPUT1_SIZE_W;
+        int arr[INPUT1_DIMS] = {b, f, w, z, y, x};
         size_t data_shape[INPUT1_DIMS] = {INPUT0_BATCH_NUM, INPUT0_FEATURE_NUM, INPUT0_SIZE_W, INPUT0_SIZE_Z, INPUT0_SIZE_Y, INPUT0_SIZE_X};
         size_t indices_shape[INPUT1_DIMS] = {INPUT1_BATCH_NUM, INPUT1_FEATURE_NUM, INPUT1_SIZE_W, INPUT1_SIZE_Z, INPUT1_SIZE_Y, INPUT1_SIZE_X};
     #endif
 
-    for(size_t i = 0; i < size; ++i)
+    int out_idx = 0, mul = 1, data_idx = 0;
+
+    for(int i = INPUT1_DIMS - 1; i >= 0; --i)
     {
-        int arr[INPUT1_DIMS] = {0};
-        int remainder = i;
-        int num = 0;
-        int mul = 1;
+        out_idx += arr[i] * mul;
+        mul *= indices_shape[i];
+    }
+    
+    arr[AXIS] = indices[out_idx];
 
-        for(int j = INPUT1_DIMS - 1; j >= 0; --j)
-        {
-            if (remainder / indices_shape[j] == 0)
-            {
-                arr[j] = remainder;
-                break;
-            }
-            else
-            {
-                arr[j] = remainder % indices_shape[j];
-                remainder /= indices_shape[j];
-            }
-        }
-        // printf("arr = %d, %d, %d, %d, %d\n", arr[0], arr[1], arr[2], arr[3], arr[4]);
-
-        arr[AXIS] = indices[i];
-        // printf("fix = %d, %d, %d, %d, %d\n", arr[0], arr[1], arr[2], arr[3], arr[4]);
-
-        for (int k = INPUT1_DIMS - 1; k >= 0; --k)
-        {
-            num += arr[k] * mul;
-            mul *= data_shape[k];
-        }
-
-        // printf("num = %d\n", num);
-
-        output[i] = data[num];
+    mul = 1;
+    for(int j = INPUT1_DIMS - 1; j >= 0; --j)
+    {
+        data_idx += arr[j] * mul;
+        mul *= data_shape[j];
     }
 
+    output[out_idx] = data[data_idx];
 }

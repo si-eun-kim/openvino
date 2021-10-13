@@ -73,7 +73,6 @@ static inline std::vector<std::string> GetDefaultOrder(size_t size) {
 CommonDispatchData GatherElementsKernelRef::SetDefault(const gather_elements_params& params, const optional_params&) const {
     CommonDispatchData dispatchData;
 
-    /*
     const auto& output = params.output;
 
     switch (params.inputs[1].GetLayout()) {
@@ -93,11 +92,8 @@ CommonDispatchData GatherElementsKernelRef::SetDefault(const gather_elements_par
         throw std::invalid_argument("Unsupported data layout for gather elements update primitive");
         break;
     }
-    */
 
-    dispatchData.gws = {1, 1, 1};
-    dispatchData.lws = {1, 1, 1};
-    //dispatchData.lws = GetOptimalLocalWorkGroupSizes(dispatchData.gws, params.engineInfo);
+    dispatchData.lws = GetOptimalLocalWorkGroupSizes(dispatchData.gws, params.engineInfo);
 
     return dispatchData;
 }
