@@ -18,26 +18,39 @@ namespace cldnn {
 struct gather_elements : public primitive_base<gather_elements> {
     CLDNN_DECLARE_PRIMITIVE(gather_elements)
 
+    enum gather_elements_axis {
+        along_b,
+        along_f,
+        along_x,
+        along_y,
+        along_z,
+        along_w
+    };
+
     /// @brief Constructs gather_elements primitive.
     /// @param id This primitive id.
     /// @param data Input data primitive id.
     /// @param indices Input indexes primitive id.
-    /// @param indices_rank Rank of indices.
-    /// @param batch_dims batch_dims as an attribute of GatherElements. Optional.
+    /// @param output_format Output format.
+    /// @param output_shape Output shape.
+    /// @param axis Gathering axis.
     gather_elements(const primitive_id& id,
               const primitive_id& data,
               const primitive_id& indices,
-              const uint8_t indices_rank,
-              const uint8_t batch_dims = 0,
-              const primitive_id& ext_prim_id = "",
+              const format& output_format,
+              const tensor& output_shape,
+              const gather_elements_axis axis,
               const padding& output_padding = padding())
-        : primitive_base(id, {data, indices}, ext_prim_id, output_padding), indices_rank(indices_rank), batch_dims(batch_dims) {}
+        : primitive_base(id, {data, indices}, ext_prim_id, output_padding), output_format(output_format), output_shape(output_shape), axis(axis) {}
 
-    /// @brief GatherElements indices_rank
-    uint8_t indices_rank;
+    /// @brief GatherElements output_format
+    format output_format;
 
-    /// @brief GatherElements batch_dims
-    uint8_t batch_dims;
+    /// @brief GatherElements output_shape
+    tensor output_shape;
+
+    /// @brief GatherElements axis
+    gather_elements_axis axis;
 };
 /// @}
 /// @}

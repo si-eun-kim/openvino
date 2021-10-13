@@ -24,56 +24,15 @@ layout gather_elements_inst::calc_output_layout(gather_elements_node const& node
     auto input_layout = input_layout_origin.size.sizes(input_layout_origin.format);
     auto indices_layout = indices_layout_origin.size.sizes(indices_layout_origin.format);
 
-    const size_t input_dims = input_layout.size();
-
-    const auto indices_rank = op->indices_rank;
-    const auto batch_dims = op->batch_dims;
-
-    // calculate initial output shape
-    std::vector<tensor::value_type> output_sizes;
-
-    for (uint8_t x = 0; x < indices_rank - 1; x++) {
-        output_sizes.push_back(indices_layout[x]);
-    }
-
-    const size_t indices_last_dim = indices_layout[indices_rank - 1];
-    for (size_t x = static_cast<size_t>(batch_dims + indices_last_dim); x < input_dims; x++) {
-        output_sizes.push_back(input_layout[x]);
-    }
-
-    // calculate batch_size by batch_dims
-    int batch_size = 1;
-    for (uint8_t x = 0; x < batch_dims; x++) {
-        batch_size *= output_sizes[x];
-    }
-
-    // create final output shape by batch_dims
-    std::vector<tensor::value_type> final_output_sizes;
-
-    if (batch_dims > 0) {
-        final_output_sizes.push_back(batch_size);
-    }
-
-    for (size_t x = static_cast<size_t>(batch_dims); x < output_sizes.size(); x++) {
-        final_output_sizes.push_back(output_sizes[x]);
-    }
-
-    auto output_format = cldnn::format::bfyx;
-    if (final_output_sizes.size() >= 6) {
-        output_format = cldnn::format::bfwzyx;
-    } else if (final_output_sizes.size() == 5) {
-        output_format = cldnn::format::bfzyx;
-    }
-
-    auto output_sizes_tensor = tensor(tensor(final_output_sizes).sizes(output_format));
-    auto padding = op->output_padding;
-
+    auto output_type = indices_layout_origin.data_type;
+    auto output_format = op->output_format;
+    auto output_shape = op->output_shape;
 
     if (node.has_fused_primitives()) {
         input_layout_origin.data_type = node.get_fused_output_layout().data_type;
     }
 
-    return layout(input_layout_origin.data_type, output_format, output_sizes_tensor, padding);
+    return layout(output_type, output_format, output_shape);
 }
 
 std::string gather_elements_inst::to_string(gather_elements_node const& node) {
@@ -87,9 +46,9 @@ std::string gather_elements_inst::to_string(gather_elements_node const& node) {
     gather_elements_info.add("input id", input.id());
     gather_elements_info.add("input shape", node.input(0).get_output_layout().size.to_string());
     gather_elements_info.add("indices shape", node.input(1).get_output_layout().size.to_string());
-    gather_elements_info.add("indices rank", desc->indices_rank);
-    gather_elements_info.add("batch dims", desc->batch_dims);
+    gather_elements_info.add("output format", calc_output_layout(node).format);
     gather_elements_info.add("output shape", calc_output_layout(node).size.to_string());
+    gather_elements_info.add("axis", desc->axis);
 
     node_info->add("gather_elements info", gather_elements_info);
     node_info->dump(primitive_description);

@@ -9,6 +9,31 @@
 
 namespace kernel_selector {
 
+static size_t GetGatherElementsChannelIndex(const gather_elements_params& params) {
+    Tensor::DataChannelName name = Tensor::DataChannelName::X;
+
+    size_t inputSize = params.inputs[0].GetDims().size();
+
+    switch (params.axis) {
+        case GatherAxis::X:
+            return inputSize - 1;
+        case GatherAxis::Y:
+            return inputSize - 2;
+        case GatherAxis::Z:
+            return inputSize - 3;
+        case GatherAxis::W:
+            return 2;
+        case GatherAxis::FEATURE:
+            return 1;
+        case GatherAxis::BATCH:
+            return 0;
+        default:
+            break;
+    }
+
+    return DataTensor::Channelndex(params.output.GetLayout(), name);
+}
+
 ParamsKey GatherElementsKernelRef::GetSupportedKey() const {
     ParamsKey k;
     k.EnableInputDataType(Datatype::F16);
@@ -48,37 +73,36 @@ static inline std::vector<std::string> GetDefaultOrder(size_t size) {
 CommonDispatchData GatherElementsKernelRef::SetDefault(const gather_elements_params& params, const optional_params&) const {
     CommonDispatchData dispatchData;
 
-    auto indices_dims = params.inputs[1].LogicalDims();
-
-    if (indices_dims.size() > 1) {
-        std::reverse(indices_dims.begin(), indices_dims.end());
-    }
-
-    indices_dims[params.indices_rank - 1] = 1; // set last dim of indices to 1
+    /*
+    const auto& output = params.output;
 
     switch (params.inputs[1].GetLayout()) {
     case DataLayout::bfyx:
-        dispatchData.gws = { indices_dims[3], indices_dims[2], indices_dims[1] * indices_dims[0] };
+        dispatchData.gws = { output.X().v, output.Y().v, output.Feature().v * output.Batch().v };
         break;
 
     case DataLayout::bfzyx:
-        dispatchData.gws = { indices_dims[4] * indices_dims[3], indices_dims[2], indices_dims[1] * indices_dims[0] };
+        dispatchData.gws = { output.X().v, output.Y().v * output.Z().v, output.Feature().v * output.Batch().v };
         break;
 
     case DataLayout::bfwzyx:
-        dispatchData.gws = { indices_dims[5] * indices_dims[4], indices_dims[3] * indices_dims[2], indices_dims[1] * indices_dims[0] };
+        dispatchData.gws = { output.X().v * output.Y().v, output.Z().v * output.W().v, output.Feature().v * output.Batch().v };
         break;
 
     default:
-        throw std::invalid_argument("Unsupported data layout for scatter elements update primitive");
+        throw std::invalid_argument("Unsupported data layout for gather elements update primitive");
         break;
     }
+    */
 
-    dispatchData.lws = GetOptimalLocalWorkGroupSizes(dispatchData.gws, params.engineInfo);
+    dispatchData.gws = {1, 1, 1};
+    dispatchData.lws = {1, 1, 1};
+    //dispatchData.lws = GetOptimalLocalWorkGroupSizes(dispatchData.gws, params.engineInfo);
 
     return dispatchData;
 }
 
+/*
 static size_t GetIndicesLastDim(const gather_elements_params& params) {
     // get indices dims
     auto indices_dims = params.inputs[1].LogicalDims();
@@ -111,14 +135,16 @@ static size_t GetSliceSize(const gather_elements_params& params) {
 
     return wi_slice_size;
 }
+*/
 
 JitConstants GatherElementsKernelRef::GetJitConstants(const gather_elements_params& params) const {
     JitConstants jit = MakeBaseParamsJitConstants(params);
 
-    jit.AddConstant(MakeJitConstant("INDICES_RANK", params.indices_rank));
-    jit.AddConstant(MakeJitConstant("BATCH_DIMS", params.batch_dims));
-    jit.AddConstant(MakeJitConstant("WI_SLICE_SIZE", GetSliceSize(params)));
-    jit.AddConstant(MakeJitConstant("INDICES_LAST_DIM", GetIndicesLastDim(params)));
+    //jit.AddConstant(MakeJitConstant("INDICES_RANK", params.indices_rank));
+    //jit.AddConstant(MakeJitConstant("BATCH_DIMS", params.batch_dims));
+    //jit.AddConstant(MakeJitConstant("WI_SLICE_SIZE", GetSliceSize(params)));
+    //jit.AddConstant(MakeJitConstant("INDICES_LAST_DIM", GetIndicesLastDim(params)));
+    jit.AddConstant(MakeJitConstant("AXIS", GetGatherElementsChannelIndex(params)));
 
     if (!params.fused_ops.empty()) {
         FusedOpsConfiguration conf = { "", GetDefaultOrder(params.output.GetDims().size()), "val", params.inputs[0].GetDType() };
@@ -136,28 +162,9 @@ bool GatherElementsKernelRef::Validate(const Params& p, const optional_params& o
     const gather_elements_params& params = static_cast<const gather_elements_params&>(p);
     auto input_dims = params.inputs[0].LogicalDims();
     auto indices_dims = params.inputs[1].LogicalDims();
-    auto indices_rank = params.indices_rank;
-    auto batch_dims = params.batch_dims;
 
-    std::reverse(input_dims.begin(), input_dims.end());
-    std::reverse(indices_dims.begin(), indices_dims.end());
-
-    if (indices_rank < 1) {
+    if (input_dims.size() != indices_dims.size()) {
         return false;
-    }
-
-    if (batch_dims + indices_dims[indices_rank - 1] > input_dims.size()) {
-        return false;
-    }
-
-    if (batch_dims >= std::min(input_dims.size(), static_cast<size_t>(indices_rank))) {
-        return false;
-    }
-
-    for (uint8_t i = 0; i < batch_dims; i++) {
-        if (input_dims[i] != indices_dims[i]) {
-            return false;
-        }
     }
 
     for (auto& fused_op : params.fused_ops) {

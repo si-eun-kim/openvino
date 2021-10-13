@@ -1,4 +1,4 @@
-// Copyright (C) 2021 Intel Corporation
+// Copyright (C) 2018-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -6,22 +6,27 @@
 
 #include <cldnn/primitives/input_layout.hpp>
 #include <cldnn/primitives/gather_elements.hpp>
+#include <cldnn/runtime/memory.hpp>
+#include <cldnn/graph/topology.hpp>
+#include <cldnn/graph/network.hpp>
 
+#include <cstddef>
+#include <gtest/gtest.h>
 
 using namespace cldnn;
 using namespace ::tests;
 
 inline void DoTest(engine& engine,
-    const cldnn::memory::ptr input0,
-    const cldnn::memory::ptr input1,
+    const cldnn::memory::ptr& input0, // data
+    const cldnn::memory::ptr& input1, // indices
     const std::vector<float>& expected_results,
-    const int indices_rank,
-    const int batch_dims) {
+    const tensor& output_tensor,
+    const cldnn::gather_elements::gather_elements_axis axis) {
     topology topology;
     topology.add(input_layout("InputData", input0->get_layout()));
     topology.add(input_layout("InputIndices", input1->get_layout()));
     topology.add(
-        gather_elements("gather_elements", "InputData", "InputIndices", indices_rank, batch_dims)
+        gather_elements("gather_elements", "InputData", "InputIndices", input1->get_layout().format, output_tensor, axis)
     );
 
     network network(engine, topology);
@@ -29,7 +34,7 @@ inline void DoTest(engine& engine,
     network.set_input_data("InputData", input0);
     network.set_input_data("InputIndices", input1);
     auto outputs = network.execute();
-    auto output = outputs.at("gather_nd").get_memory();
+    auto output = outputs.at("gather_elements").get_memory();
     cldnn::mem_lock<uint16_t> output_ptr(output, get_test_stream());
 
     for (size_t i = 0; i < expected_results.size(); ++i) {
@@ -37,21 +42,20 @@ inline void DoTest(engine& engine,
     }
 }
 
-TEST(gather_elements_gpu_fp16, d23322_i231312_ir6_batch2) {
+TEST(gather_elements_gpu_fp16, d3283_i2283_a0) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 6;
-    const int batch_dims = 2;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_b;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfyx, { 3, 2, 8, 3 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfyx, { 2, 2, 8, 3 } }); // indices
 
     set_values(input0, {
         FLOAT16(0), FLOAT16(1), FLOAT16(8), FLOAT16(5), FLOAT16(5), FLOAT16(2), FLOAT16(0), FLOAT16(7), 
         FLOAT16(7), FLOAT16(10), FLOAT16(4), FLOAT16(5), FLOAT16(9), FLOAT16(0), FLOAT16(0), FLOAT16(5), 
-        FLOAT16(7), FLOAT16(0), FLOAT16(4), FLOAT16(0), FLOAT16(4), FLOAT16(7), FLOAT16(6), FLOAT16(10), 
+        FLOAT16(7), FLOAT16(0), FLOAT16(4), FLOAT16(0), FLOAT16(4), FLOAT16(7), FLOAT16(6), FLOAT16(10),
         FLOAT16(9), FLOAT16(5), FLOAT16(1), FLOAT16(7), FLOAT16(4), FLOAT16(7), FLOAT16(10), FLOAT16(8), 
         FLOAT16(2), FLOAT16(0), FLOAT16(8), FLOAT16(3), FLOAT16(6), FLOAT16(8), FLOAT16(10), FLOAT16(4), 
-        FLOAT16(2), FLOAT16(10), FLOAT16(7), FLOAT16(8), FLOAT16(7), FLOAT16(0), FLOAT16(6), FLOAT16(9), 
+        FLOAT16(2), FLOAT16(10), FLOAT16(7), FLOAT16(8), FLOAT16(7), FLOAT16(0), FLOAT16(6), FLOAT16(9),
         FLOAT16(2), FLOAT16(4), FLOAT16(8), FLOAT16(5), FLOAT16(2), FLOAT16(3), FLOAT16(3), FLOAT16(1), 
         FLOAT16(5), FLOAT16(9), FLOAT16(10), FLOAT16(0), FLOAT16(9), FLOAT16(5), FLOAT16(5), FLOAT16(3), 
         FLOAT16(10), FLOAT16(5), FLOAT16(2), FLOAT16(0), FLOAT16(10), FLOAT16(0), FLOAT16(5), FLOAT16(4), 
@@ -96,17 +100,15 @@ TEST(gather_elements_gpu_fp16, d23322_i231312_ir6_batch2) {
         FLOAT16(2), FLOAT16(10), FLOAT16(7), FLOAT16(3), FLOAT16(3), FLOAT16(10), FLOAT16(6), FLOAT16(1), 
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(2, 2, 8, 3), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d231322_i231321_ir6_batch5) {
+TEST(gather_elements_gpu_fp16, d2235_i2235_a3) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 6;
-    const int batch_dims = 5;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_x;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfyx, { 2, 2, 3, 5 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfyx, { 2, 2, 3, 5 } }); // indices
-
     set_values(input0, {
         FLOAT16(0), FLOAT16(1), FLOAT16(8), 
         FLOAT16(5), FLOAT16(5), FLOAT16(2), 
@@ -176,17 +178,15 @@ TEST(gather_elements_gpu_fp16, d231322_i231321_ir6_batch5) {
         FLOAT16(9), FLOAT16(9), FLOAT16(0),
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(2, 2, 3, 5), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d23322_i23321_ir5_batch4) {
+TEST(gather_elements_gpu_fp16, d1329_i1359_an1) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 5;
-    const int batch_dims = 4;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_x;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfyx, { 1, 3, 2, 9 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfyx, { 1, 3, 5, 9 } }); // indices
-
     set_values(input0, {
         FLOAT16(0), FLOAT16(1), 
         FLOAT16(8), FLOAT16(5), 
@@ -277,14 +277,13 @@ TEST(gather_elements_gpu_fp16, d23322_i23321_ir5_batch4) {
         FLOAT16(3), FLOAT16(3), FLOAT16(2), FLOAT16(3), FLOAT16(3), 
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(1, 3, 5, 9), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d23223_i2321_ir4_batch3) {
+TEST(gather_elements_gpu_fp16, d12853_i12923_a3) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 4;
-    const int batch_dims = 3;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_y;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfzyx, { 1, 2, 8, 5, 3 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfzyx, { 1, 2, 8, 2, 3 } }); // indices
 
@@ -351,14 +350,13 @@ TEST(gather_elements_gpu_fp16, d23223_i2321_ir4_batch3) {
         FLOAT16(1), FLOAT16(7), FLOAT16(10), FLOAT16(0), FLOAT16(9), FLOAT16(4), FLOAT16(5), FLOAT16(5), 
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(1, 2, 8, 2, 3), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d2342_i2312_ir4_batch2) {
+TEST(gather_elements_gpu_fp16, d25441_i22441_an4) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 4;
-    const int batch_dims = 2;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_f;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfzyx, { 2, 5, 4, 4, 1 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfzyx, { 2, 2, 4, 4, 1 } }); // indices
 
@@ -444,14 +442,13 @@ TEST(gather_elements_gpu_fp16, d2342_i2312_ir4_batch2) {
         FLOAT16(6), FLOAT16(5), FLOAT16(10), FLOAT16(8), 
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(2, 2, 4, 4, 1), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d234_i2311_ir4_batch2) {
+TEST(gather_elements_gpu_fp16, d32843_i12843_a0) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 4;
-    const int batch_dims = 2;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_b;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfzyx, { 3, 2, 8, 4, 3 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfzyx, { 1, 2, 8, 4, 3 } }); // indices
 
@@ -585,14 +582,13 @@ TEST(gather_elements_gpu_fp16, d234_i2311_ir4_batch2) {
         FLOAT16(7), FLOAT16(4), FLOAT16(6), FLOAT16(8), FLOAT16(2), FLOAT16(7), FLOAT16(3), FLOAT16(5), 
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(1, 2, 8, 4, 3), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d234_i21_ir2_batch1) {
+TEST(gather_elements_gpu_fp16, d223442_i226442_a5) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 2;
-    const int batch_dims = 1;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_x;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfwzyx, { 2, 2, 3, 4, 4, 2 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfwzyx, { 2, 2, 6, 4, 4, 2 } }); // indices
 
@@ -989,15 +985,13 @@ TEST(gather_elements_gpu_fp16, d234_i21_ir2_batch1) {
         FLOAT16(3), FLOAT16(3), FLOAT16(7), FLOAT16(8), FLOAT16(3), FLOAT16(8), 
     };
 
-
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(2, 2, 6, 4, 4, 2), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d22_i21_ir2_batch1) {
+TEST(gather_elements_gpu_fp16, d124251_i124221_an3) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 2;
-    const int batch_dims = 1;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_z;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfwzyx, { 1, 2, 4, 2, 5, 1 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfwzyx, { 1, 2, 4, 2, 2, 1 } }); // indices
 
@@ -1046,14 +1040,13 @@ TEST(gather_elements_gpu_fp16, d22_i21_ir2_batch1) {
         FLOAT16(2), FLOAT16(0), FLOAT16(5), FLOAT16(8), 
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(1, 2, 4, 2, 2, 1), axis);
 }
 
-TEST(gather_elements_gpu_fp16, d3223_i321113_ir6_batch0) {
+TEST(gather_elements_gpu_fp16, d233113_i233115_a2) {
     auto& engine = get_test_engine();
 
-    const int indices_rank = 6;
-    const int batch_dims = 0;
+    auto axis = cldnn::gather_elements::gather_elements_axis::along_w;
     auto input0 = engine.allocate_memory({ data_types::f16, format::bfwzyx, { 2, 3, 3, 1, 1, 3 } }); // data
     auto input1 = engine.allocate_memory({ data_types::f16, format::bfwzyx, { 2, 3, 3, 1, 1, 5 } }); // indices
 
@@ -1144,6 +1137,5 @@ TEST(gather_elements_gpu_fp16, d3223_i321113_ir6_batch0) {
         FLOAT16(5), FLOAT16(6), FLOAT16(3), 
     };
 
-    DoTest(engine, input0, input1, expected_results, indices_rank, batch_dims);
+    DoTest(engine, input0, input1, expected_results, tensor(2, 3, 3, 1, 1, 5), axis);
 }
-
