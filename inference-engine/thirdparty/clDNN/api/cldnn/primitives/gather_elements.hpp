@@ -1,7 +1,8 @@
-// Copyright (C) 2021 Intel Corporation
+// Copyright (C) 2018-2021 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma once
 #include "primitive.hpp"
 
@@ -35,21 +36,21 @@ struct gather_elements : public primitive_base<gather_elements> {
     /// @param output_shape Output shape.
     /// @param axis Gathering axis.
     gather_elements(const primitive_id& id,
-              const primitive_id& data,
-              const primitive_id& indices,
-              const format& output_format,
-              const tensor& output_shape,
-              const gather_elements_axis axis,
-              const padding& output_padding = padding())
+                    const primitive_id& data,
+                    const primitive_id& indices,
+                    const format& output_format,
+                    const tensor& output_shape,
+                    const gather_elements_axis axis,
+                    const primitive_id& ext_prim_id = "",
+                    const padding& output_padding = padding())
         : primitive_base(id, {data, indices}, ext_prim_id, output_padding), output_format(output_format), output_shape(output_shape), axis(axis) {}
 
-    /// @brief GatherElements output_format
+    /// @brief Gather Elements output format
     format output_format;
-
-    /// @brief GatherElements output_shape
+    /// @brief Gather Elements output shape
     tensor output_shape;
 
-    /// @brief GatherElements axis
+    /// @brief Which axis to gather on.
     gather_elements_axis axis;
 };
 /// @}
