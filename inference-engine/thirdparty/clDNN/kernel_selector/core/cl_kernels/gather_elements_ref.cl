@@ -63,5 +63,13 @@ KERNEL(gather_elements_ref)(const __global INPUT0_TYPE* data,
         mul *= data_shape[j];
     }
 
-    output[out_idx] = data[data_idx];
+    //output[out_idx] = data[data_idx];
+    INPUT0_TYPE val = data[data_idx];
+
+    #if HAS_FUSED_OPS
+        FUSED_OPS;
+        output[out_idx] = TO_OUTPUT_TYPE(FUSED_OPS_RESULT);
+    #else
+        output[out_idx] = ACTIVATION(val, ACTIVATION_PARAMS);
+    #endif
 }
