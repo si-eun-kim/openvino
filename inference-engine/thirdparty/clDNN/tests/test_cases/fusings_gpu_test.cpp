@@ -18,7 +18,7 @@
 #include <cldnn/primitives/permute.hpp>
 #include <cldnn/primitives/gather.hpp>
 #include <cldnn/primitives/gather_nd.hpp>
-#include <cldnn/primitives/gather_elements.hpp> 
+#include <cldnn/primitives/gather_elements.hpp>
 #include <cldnn/primitives/scatter_update.hpp>
 #include <cldnn/primitives/scatter_nd_update.hpp>
 #include <cldnn/primitives/scatter_elements_update.hpp>
@@ -8574,7 +8574,7 @@ INSTANTIATE_TEST_SUITE_P(fusings_gpu, gather_nd_activation_scale_eltwise,
 
 
 /* ----------------------------------------------------------------------------------------------------- */
-/* ------------------------------------------ GatherElement cases ------------------------------------------- */
+/* ------------------------------------------ GatherElements cases ------------------------------------- */
 /* ----------------------------------------------------------------------------------------------------- */
 struct gather_elements_test_params {
     data_types data_type;
@@ -8597,49 +8597,57 @@ struct gather_elements_test_params {
     size_t expected_not_fused_primitives;
 };
 
-#define CASE_GATHER_ELEMENTS_FP16_4D_1 data_types::f16, format::bfyx, {6, 7, 9, 8}, format::bfyx, {3, 1, 1, 1}, format::bfyx, {3, 7, 9, 8}, 6, 2, 0, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_4D_2 data_types::f16, format::bfyx, {6, 7, 9, 8}, format::bfyx, {6, 1, 1, 1}, format::bfyx, {6, 8, 1, 9}, 6, 2, 1, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_4D_3 data_types::f16, format::bfyx, {5, 4, 7, 2}, format::bfyx, {5, 4, 1, 2}, format::bfyx, {40, 1, 1, 1}, 6, 4, 3, data_types::f16, format::bfyx
+#define CASE_GATHER_ELEMENTS_FP16_4D_1 data_types::f16, format::bfyx, {3, 7, 9, 8}, format::bfyx, {3, 7, 9, 8}, format::bfyx, {3, 7, 9, 8}, cldnn::gather_elements::gather_elements_axis::along_y, data_types::f16, format::bfyx
+#define CASE_GATHER_ELEMENTS_FP16_4D_2 data_types::f16, format::bfyx, {3, 2, 8, 3}, format::bfyx, {2, 2, 8, 3}, format::bfyx, {2, 2, 8, 3}, cldnn::gather_elements::gather_elements_axis::along_b, data_types::f16, format::bfyx
+#define CASE_GATHER_ELEMENTS_FP16_4D_3 data_types::f16, format::bfyx, {1, 3, 2, 9}, format::bfyx, {1, 3, 5, 9}, format::bfyx, {1, 3, 5, 9}, cldnn::gather_elements::gather_elements_axis::along_x, data_types::f16, format::bfyx
 
-#define CASE_GATHER_ELEMENTS_FP16_5D_1 data_types::f16, format::bfzyx, {5, 6, 7, 8, 5}, format::bfyx, {5, 1, 1, 1}, format::bfzyx, {5, 6, 7, 8, 5}, 5, 2, 0, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_5D_2 data_types::f16, format::bfzyx, {5, 6, 7, 8, 5}, format::bfyx, {5, 1, 1, 1}, format::bfyx, {5, 5, 7, 8}, 5, 2, 1, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_5D_3 data_types::f16, format::bfzyx, {5, 4, 7, 8, 5}, format::bfyx, {5, 4, 1, 3}, format::bfyx, {20, 1, 1, 1}, 4, 3, 2, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_5D_4 data_types::f16, format::bfzyx, {5, 4, 7, 8, 3}, format::bfyx, {5, 4, 1, 3}, format::bfyx, {60, 7, 1, 1}, 4, 4, 3, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_5D_5 data_types::f16, format::bfzyx, {5, 4, 7, 2, 3}, format::bfzyx, {5, 4, 1, 2, 3}, format::bfyx, {120, 1, 1, 1}, 4, 5, 4, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_5D_6 data_types::f16, format::bfzyx, {5, 4, 7, 4, 4}, format::bfzyx, {5, 4, 1, 1, 3}, format::bfzyx, {20, 3, 7, 4, 1}, 4, 5, 2, data_types::f16, format::bfyx
+#define CASE_GATHER_ELEMENTS_FP16_5D_1 data_types::f16, format::bfzyx, {3, 2, 5, 2, 3}, format::bfzyx, {3, 2, 2, 2, 3}, format::bfzyx, {3, 2, 2, 2, 3}, cldnn::gather_elements::gather_elements_axis::along_x, data_types::f16, format::bfzyx
+#define CASE_GATHER_ELEMENTS_FP16_5D_2 data_types::f16, format::bfzyx, {5, 4, 7, 4, 4}, format::bfzyx, {5, 4, 7, 4, 3}, format::bfzyx, {5, 4, 7, 4, 3}, cldnn::gather_elements::gather_elements_axis::along_z, data_types::f16, format::bfzyx
 
-#define CASE_GATHER_ELEMENTS_FP16_6D_1 data_types::f16, format::bfwzyx, {5, 4, 6, 7, 8, 5}, format::bfyx, {5, 4, 2, 2}, format::bfyx, {20, 2, 6, 7}, 5, 4, 2, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_6D_2 data_types::f16, format::bfwzyx, {5, 4, 6, 7, 8, 2}, format::bfyx, {5, 4, 2, 2}, format::bfyx, {40, 6, 1, 1}, 5, 4, 3, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_6D_3 data_types::f16, format::bfwzyx, {5, 4, 6, 7, 2, 2}, format::bfzyx, {5, 4, 1, 2, 2}, format::bfyx, {80, 6, 1, 1}, 5, 5, 4, data_types::f16, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP16_6D_4 data_types::f16, format::bfwzyx, {5, 4, 6, 3, 2, 2}, format::bfwzyx, {5, 4, 1, 3, 2, 2}, format::bfyx, {240, 1, 1, 1}, 5, 6, 5, data_types::f16, format::bfyx
-
-#define CASE_GATHER_ELEMENTS_FP32_4D_1 data_types::f32, format::bfyx, {6, 7, 9, 8}, format::bfyx, {3, 1, 1, 1}, format::bfyx, {3, 7, 9, 8}, 6, 2, 0, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_4D_2 data_types::f32, format::bfyx, {6, 7, 9, 8}, format::bfyx, {6, 1, 1, 1}, format::bfyx, {6, 8, 1, 9}, 6, 2, 1, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_4D_3 data_types::f32, format::bfyx, {5, 4, 7, 2}, format::bfyx, {5, 4, 1, 2}, format::bfyx, {40, 1, 1, 1}, 6, 4, 3, data_types::f32, format::bfyx
-
-#define CASE_GATHER_ELEMENTS_FP32_5D_1 data_types::f32, format::bfzyx, {5, 6, 7, 8, 5}, format::bfyx, {5, 1, 1, 1}, format::bfzyx, {5, 6, 7, 8, 5}, 5, 2, 0, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_5D_2 data_types::f32, format::bfzyx, {5, 6, 7, 8, 5}, format::bfyx, {5, 1, 1, 1}, format::bfyx, {5, 5, 7, 8}, 5, 2, 1, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_5D_3 data_types::f32, format::bfzyx, {5, 4, 7, 8, 5}, format::bfyx, {5, 4, 1, 3}, format::bfyx, {20, 1, 1, 1}, 4, 3, 2, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_5D_4 data_types::f32, format::bfzyx, {5, 4, 7, 8, 3}, format::bfyx, {5, 4, 1, 3}, format::bfyx, {60, 7, 1, 1}, 4, 4, 3, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_5D_5 data_types::f32, format::bfzyx, {5, 4, 7, 2, 3}, format::bfzyx, {5, 4, 1, 2, 3}, format::bfyx, {120, 1, 1, 1}, 4, 5, 4, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_5D_6 data_types::f32, format::bfzyx, {5, 4, 7, 4, 4}, format::bfzyx, {5, 4, 1, 1, 3}, format::bfzyx, {20, 3, 7, 4, 1}, 4, 5, 2, data_types::f32, format::bfyx
-
-#define CASE_GATHER_ELEMENTS_FP32_6D_1 data_types::f32, format::bfwzyx, {5, 4, 6, 7, 8, 5}, format::bfyx, {5, 4, 2, 2}, format::bfyx, {20, 2, 6, 7}, 5, 4, 2, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_6D_2 data_types::f32, format::bfwzyx, {5, 4, 6, 7, 8, 2}, format::bfyx, {5, 4, 2, 2}, format::bfyx, {40, 6, 1, 1}, 5, 4, 3, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_6D_3 data_types::f32, format::bfwzyx, {5, 4, 6, 7, 2, 2}, format::bfzyx, {5, 4, 1, 2, 2}, format::bfyx, {80, 6, 1, 1}, 5, 5, 4, data_types::f32, format::bfyx
-#define CASE_GATHER_ELEMENTS_FP32_6D_4 data_types::f32, format::bfwzyx, {5, 4, 6, 3, 2, 2}, format::bfwzyx, {5, 4, 1, 3, 2, 2}, format::bfyx, {240, 1, 1, 1}, 5, 6, 5, data_types::f32, format::bfyx
+#define CASE_GATHER_ELEMENTS_FP16_6D_1 data_types::f16, format::bfwzyx, {5, 4, 6, 7, 8, 2}, format::bfwzyx, {5, 2, 6, 7, 8, 2}, format::bfwzyx, {5, 2, 6, 7, 8, 2}, cldnn::gather_elements::gather_elements_axis::along_f, data_types::f16, format::bfwzyx
+#define CASE_GATHER_ELEMENTS_FP16_6D_2 data_types::f16, format::bfwzyx, {2, 1, 2, 3, 2, 1}, format::bfwzyx, {2, 1, 2, 3, 2, 3}, format::bfwzyx, {2, 1, 2, 3, 2, 3}, cldnn::gather_elements::gather_elements_axis::along_w, data_types::f16, format::bfwzyx
+#define CASE_GATHER_ELEMENTS_FP16_6D_3 data_types::f16, format::bfwzyx, {2, 2, 3, 4, 4, 2}, format::bfwzyx, {2, 2, 6, 4, 4, 2}, format::bfwzyx, {2, 2, 6, 4, 4, 2}, cldnn::gather_elements::gather_elements_axis::along_x, data_types::f16, format::bfwzyx
 
 
+#define CASE_GATHER_ELEMENTS_FP32_4D_1 data_types::f32, format::bfyx, {3, 7, 9, 8}, format::bfyx, {3, 7, 9, 8}, format::bfyx, {3, 7, 9, 8}, cldnn::gather_elements::gather_elements_axis::along_y, data_types::f32, format::bfyx
+#define CASE_GATHER_ELEMENTS_FP32_4D_2 data_types::f32, format::bfyx, {3, 2, 8, 3}, format::bfyx, {2, 2, 8, 3}, format::bfyx, {2, 2, 8, 3}, cldnn::gather_elements::gather_elements_axis::along_b, data_types::f32, format::bfyx
+#define CASE_GATHER_ELEMENTS_FP32_4D_3 data_types::f32, format::bfyx, {1, 3, 2, 9}, format::bfyx, {1, 3, 5, 9}, format::bfyx, {1, 3, 5, 9}, cldnn::gather_elements::gather_elements_axis::along_x, data_types::f32, format::bfyx
+
+#define CASE_GATHER_ELEMENTS_FP32_5D_1 data_types::f32, format::bfzyx, {3, 2, 5, 2, 3}, format::bfzyx, {3, 2, 2, 2, 3}, format::bfzyx, {3, 2, 2, 2, 3}, cldnn::gather_elements::gather_elements_axis::along_x, data_types::f32, format::bfzyx
+#define CASE_GATHER_ELEMENTS_FP32_5D_2 data_types::f32, format::bfzyx, {5, 4, 7, 4, 4}, format::bfzyx, {5, 4, 7, 4, 3}, format::bfzyx, {5, 4, 7, 4, 3}, cldnn::gather_elements::gather_elements_axis::along_z, data_types::f32, format::bfzyx
+
+#define CASE_GATHER_ELEMENTS_FP32_6D_1 data_types::f32, format::bfwzyx, {5, 4, 6, 7, 8, 2}, format::bfwzyx, {5, 2, 6, 7, 8, 2}, format::bfwzyx, {5, 2, 6, 7, 8, 2}, cldnn::gather_elements::gather_elements_axis::along_f, data_types::f32, format::bfwzyx
+#define CASE_GATHER_ELEMENTS_FP32_6D_2 data_types::f32, format::bfwzyx, {2, 1, 2, 3, 2, 1}, format::bfwzyx, {2, 1, 2, 3, 2, 3}, format::bfwzyx, {2, 1, 2, 3, 2, 3}, cldnn::gather_elements::gather_elements_axis::along_w, data_types::f32, format::bfwzyx
+#define CASE_GATHER_ELEMENTS_FP32_6D_3 data_types::f32, format::bfwzyx, {2, 2, 3, 4, 4, 2}, format::bfwzyx, {2, 2, 6, 4, 4, 2}, format::bfwzyx, {2, 2, 6, 4, 4, 2}, cldnn::gather_elements::gather_elements_axis::along_x, data_types::f32, format::bfwzyx
 
 class GatherElementsPrimitiveFusingTest : public ::BaseFusingTest<gather_elements_test_params> {
 public:
     void execute(gather_elements_test_params& p) {
         auto input_prim = get_mem(get_input_layout(p));
-	network network_not_fused(this->engine, this->topology_non_fused, bo_not_fused);
-	network network_fused(this->engine, this->topology_fused, bo_fused);
-	network_fused.set_input_data("input", input_prim);
-	network_not_fused.set_input_data("input", input_prim);
-	compare(network_not_fused, network_fused, p);
+        network network_not_fused(this->engine, this->topology_non_fused, bo_not_fused);
+        network network_fused(this->engine, this->topology_fused, bo_fused);
+        network_fused.set_input_data("input", input_prim);
+        network_not_fused.set_input_data("input", input_prim);
+        compare(network_not_fused, network_fused, p);
+    }
+
+    size_t get_axis_dim(gather_elements_test_params& p) {
+        switch (p.axis) {
+            case cldnn::gather_elements::gather_elements_axis::along_x:
+                return p.input_shape.spatial[0];
+            case cldnn::gather_elements::gather_elements_axis::along_y:
+                return p.input_shape.spatial[1];
+            case cldnn::gather_elements::gather_elements_axis::along_z:
+                return p.input_shape.spatial[2];
+            case cldnn::gather_elements::gather_elements_axis::along_w:
+                return p.input_shape.spatial[3];
+            case cldnn::gather_elements::gather_elements_axis::along_f:
+                return p.input_shape.feature[0];
+            case cldnn::gather_elements::gather_elements_axis::along_b:
+                return p.input_shape.batch[0];
+            default:
+                return 1;
+        }
     }
 
     layout get_input_layout(gather_elements_test_params& p) {
@@ -8661,70 +8669,98 @@ public:
 
 class gather_elements_quantize : public GatherElementsPrimitiveFusingTest {};
 TEST_P(gather_elements_quantize, basic) {
-    /*
     auto p = GetParam();
     create_topologies(input_layout("input", get_input_layout(p)),
-        data("gather_elements_indices", get_mem(get_indices_layout(p), 0, p.max_number_in_indices - 1)),
+        data("gather_elements_indices", get_mem(get_indices_layout(p), 0, static_cast<int>(get_axis_dim(p))-1)),
         data("in_lo", get_mem(get_per_channel_layout(p), min_random, 0)),
         data("in_hi", get_mem(get_per_channel_layout(p), 1, max_random)),
         data("out_lo", get_mem(get_single_element_layout(p), -127)),
         data("out_hi", get_mem(get_single_element_layout(p), 127)),
-        gather_elements("gather_elements_prim", "input", "gather_elements_indices", p.indices_rank, p.batch_dims),
+        gather_elements("gather_elements_prim", "input", "gather_elements_indices", p.output_format, p.output_shape, p.axis),
         quantize("quantize", "gather_elements_prim", "in_lo", "in_hi", "out_lo", "out_hi", 255, data_types::i8),
         reorder("reorder_bfyx", "quantize", p.default_format, data_types::f32)
     );
     tolerance = 1.f;
     execute(p);
-    */
 }
 
 INSTANTIATE_TEST_SUITE_P(fusings_gpu, gather_elements_quantize,
     ::testing::ValuesIn(std::vector<gather_elements_test_params>{
-        /*
         gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_1, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_2, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_3, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_2, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_3, 2, 3 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_1, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_2, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_3, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_4, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_5, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_6, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_1, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_2, 2, 3 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_1, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_2, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_3, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_4, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_1, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_2, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_3, 2, 3 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_1, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_2, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_3, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_1, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_2, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_3, 2, 3 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_1, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_2, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_3, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_4, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_5, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_6, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_1, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_2, 2, 3 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_1, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_2, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_3, 2, 3 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_4, 2, 3 },
-	*/
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_1, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_2, 2, 3 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_3, 2, 3 },
 }));
+
+
+class gather_elements_scale_activation : public GatherElementsPrimitiveFusingTest {};
+TEST_P(gather_elements_scale_activation, basic) {
+    auto p = GetParam();
+    create_topologies(input_layout("input", get_input_layout(p)),
+        data("gather_elements_indices", get_mem(get_indices_layout(p), 0, static_cast<int>(get_axis_dim(p))-1)),
+        data("scale_data", get_mem(get_per_channel_layout(p), -10, 10)),
+        gather_elements("gather_elements_prim", "input", "gather_elements_indices", p.output_format, p.output_shape, p.axis),
+        activation("activation", "gather_elements_prim", activation_func::abs),
+        scale("scale", "activation", "scale_data"),
+        reorder("reorder_bfyx", "scale", p.default_format, data_types::f32)
+    );
+
+    tolerance = 1e-5f;
+    execute(p);
+}
+
+INSTANTIATE_TEST_SUITE_P(fusings_gpu, gather_elements_scale_activation,
+    ::testing::ValuesIn(std::vector<gather_elements_test_params>{
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_1, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_2, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_3, 2, 4 },
+
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_1, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_2, 2, 4 },
+
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_1, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_2, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_3, 2, 4 },
+
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_1, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_2, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_3, 2, 4 },
+
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_1, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_2, 2, 4 },
+
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_1, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_2, 2, 4 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_3, 2, 4 },
+}));
+
 
 class gather_elements_activation_scale_eltwise : public GatherElementsPrimitiveFusingTest {};
 TEST_P(gather_elements_activation_scale_eltwise, basic) {
     auto p = GetParam();
 
-    /*
     create_topologies(input_layout("input", get_input_layout(p)),
-        data("gather_elements_indices", get_mem(get_indices_layout(p), 0, p.max_number_in_indices - 1)),
+        data("gather_elements_indices", get_mem(get_indices_layout(p), 0, static_cast<int>(get_axis_dim(p))-1)),
         data("scale_data", get_mem(get_per_channel_layout(p), 1.0f / 255)),
         data("eltwise_data", get_mem(get_output_layout(p))),
-        gather_elements("gather_elements_prim", "input", "gather_elements_indices", p.indices_rank, p.batch_dims),
+        gather_elements("gather_elements_prim", "input", "gather_elements_indices", p.output_format, p.output_shape, p.axis),
         activation("activation", "gather_elements_prim", activation_func::abs),
         scale("scale", "activation", "scale_data"),
         eltwise("eltwise", { "scale", "eltwise_data" }, eltwise_mode::sum, p.data_type),
@@ -8733,43 +8769,29 @@ TEST_P(gather_elements_activation_scale_eltwise, basic) {
 
     tolerance = 1e-5f;
     execute(p);
-    */
 }
 
 INSTANTIATE_TEST_SUITE_P(fusings_gpu, gather_elements_activation_scale_eltwise,
     ::testing::ValuesIn(std::vector<gather_elements_test_params>{
-        /*
         gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_1, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_2, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_3, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_2, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_4D_3, 2, 5 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_1, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_2, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_3, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_4, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_5, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_6, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_1, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_5D_2, 2, 5 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_1, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_2, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_3, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_4, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_1, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_2, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP16_6D_3, 2, 5 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_1, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_2, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_3, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_1, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_2, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_4D_3, 2, 5 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_1, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_2, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_3, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_4, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_5, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_6, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_1, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_5D_2, 2, 5 },
 
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_1, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_2, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_3, 2, 5 },
-	gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_4, 2, 5 },
-	*/
-    }));
-
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_1, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_2, 2, 5 },
+        gather_elements_test_params{ CASE_GATHER_ELEMENTS_FP32_6D_3, 2, 5 },
+}));
